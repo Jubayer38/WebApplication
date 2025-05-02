@@ -16,30 +16,28 @@ jobs:
       - name: List files (for debugging)
         run: ls -R
 
-      - name: Install Mono (for MSBuild)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mono-complete
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Setup .NET (stable version)
+        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.400'
+          dotnet-version: '8.0.x'
+
+      - name: Confirm .NET Installation
+        run: dotnet --info
 
       - name: Restore dependencies
         run: dotnet restore WebApplication1.sln
+
+      - name: Build project (check if it compiles before Coverity scan)
+        run: dotnet build WebApplication1.sln --configuration Release --no-restore
 
       - name: Download Coverity Analysis Tool
         run: |
           wget --post-data "token=${{ secrets.COVERITY_TOKEN }}&project=${{ github.repository }}" -O coverity_tool.tgz https://scan.coverity.com/download/linux64
           tar -xvzf coverity_tool.tgz
 
-      - name: Configure Coverity Compiler
-        run: ./cov-analysis*/bin/cov-configure --compiler msbuild
-
-      - name: Run Coverity Build (MSBuild)
+      - name: Run Coverity Build
         run: |
-          ./cov-analysis*/bin/cov-build --dir cov-int msbuild WebApplication1.sln /p:Configuration=Release
+          ./cov-analysis*/bin/cov-build --dir cov-int dotnet build WebApplication1.sln --configuration Release
 
       - name: Compress analysis results
         run: tar czvf cov-int.tgz cov-int

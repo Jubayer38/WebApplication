@@ -27,15 +27,16 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore WebApplication1.sln
 
-      - name: Build project (check if it compiles before Coverity scan)
-        run: dotnet build WebApplication1.sln --configuration Release --no-restore
-
       - name: Download Coverity Analysis Tool
         run: |
           wget --post-data "token=${{ secrets.COVERITY_TOKEN }}&project=${{ github.repository }}" -O coverity_tool.tgz https://scan.coverity.com/download/linux64
           tar -xvzf coverity_tool.tgz
 
-      - name: Run Coverity Build
+      - name: Configure Coverity for C#
+        run: |
+          ./cov-analysis*/bin/cov-configure --compiler dotnet --comptype cs --template
+
+      - name: Run Coverity Build (with hooks)
         run: |
           ./cov-analysis*/bin/cov-build --dir cov-int dotnet build WebApplication1.sln --configuration Release
 
